@@ -20,36 +20,57 @@ export class Gallery extends Component {
 
   componentDidUpdate(prevProps, prevState) {
     const { query, page } = this.state;
-    if (prevState.query !== query) {
+    if (prevState.query !== query || prevState.page !== page) {
       this.getImages(query, page);
     }
     console.log(this.state);
   }
 
   handleSubmit = value => {
-    this.setState({ query: value });
+    this.setState({
+      query: value,
+      page: 1,
+      images: [],
+
+      error: null,
+      isEmpty: false,
+      isShowButton: false,
+    });
   };
 
   getImages = async (query, page) => {
     this.setState({ isLoading: true });
     try {
-      const result = await ImageService.getImages(query, page);
-      if (!result.photos.length) { 
-        this.setState.isEmpty = true;
+      const {
+        page: currentPage,
+        per_page,
+        photos,
+        total_results,
+      } = await ImageService.getImages(query, page);
+
+      if (!photos.length) {
+        this.setState({ isEmpty: true });
         return;
-      } 
-        this.setState({ images: result.photos });
-      
+      }
+      this.setState(prevState => ({
+        images: [...prevState.images, ...photos],
+        isShowButton: currentPage < Math.ceil(total_results / per_page),
+      }));
     } catch (error) {
-      this.setState({error : error.message})
+      this.setState({ error: error.message });
     } finally {
       this.setState({ isLoading: false });
     }
-  }
-  
+  };
+
+  handleClickBtn = () => {
+    this.setState(prev => ({
+      page: prev.page + 1,
+    }));
+  };
 
   render() {
-    const { images, isEmpty, isLoading, error } = this.state; 
+    const { images, isEmpty, isLoading, error, isShowButton } = this.state;
     return (
       <>
         <SearchForm onSubmit={this.handleSubmit} />
@@ -69,6 +90,9 @@ export class Gallery extends Component {
         )}
         {isLoading && <Text textAlign="center">Loading ...</Text>}
         {error && <Text textAlign="center">{error}</Text>}
+        {isShowButton && (
+          <Button onClick={this.handleClickBtn}>Load more</Button>
+        )}
       </>
     );
   }
