@@ -31,15 +31,44 @@ export class Gallery extends Component {
   };
 
   getImages = async (query, page) => {
-    const some = await ImageService.getImages(query, page);
-    this.setState({ images: some.photos });
-  };
+    this.setState({ isLoading: true });
+    try {
+      const result = await ImageService.getImages(query, page);
+      if (!result.photos.length) { 
+        this.setState.isEmpty = true;
+        return;
+      } 
+        this.setState({ images: result.photos });
+      
+    } catch (error) {
+      this.setState({error : error.message})
+    } finally {
+      this.setState({ isLoading: false });
+    }
+  }
+  
 
   render() {
+    const { images, isEmpty, isLoading, error } = this.state; 
     return (
       <>
         <SearchForm onSubmit={this.handleSubmit} />
-        <Text textAlign="center">Sorry. There are no images ... 😭</Text>
+        <Grid>
+          {images.map(({ id, src: { small }, alt }) => {
+            return (
+              <GridItem key={id}>
+                <CardItem>
+                  <img src={small} alt={alt} />
+                </CardItem>
+              </GridItem>
+            );
+          })}
+        </Grid>
+        {isEmpty && (
+          <Text textAlign="center">Sorry. There are no images ... 😭</Text>
+        )}
+        {isLoading && <Text textAlign="center">Loading ...</Text>}
+        {error && <Text textAlign="center">{error}</Text>}
       </>
     );
   }
